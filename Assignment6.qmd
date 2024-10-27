@@ -48,7 +48,7 @@ library(syuzhet)
 
 This assignment is done for the purpose of expounding on how to use Web APIs to get and analyze data. More precisely, the assignment is going to deal with the use of New York Times APIs to gain access to real-time, structured data using programmatic requests. By constructing an interface in R, JSON data from the API will be parsed and transformed into an R DataFrame, which enables the analysis of such data. In this case, using the New York Times Article Search API, attention will be paid to retrieve articles on Democrats and Republicans. This will give the chance to analyze the media coverage and political discourses of these two major U.S. political parties. In this exercise, the way web APIs are used will be demonstrated in a practical way in data analysis using the programming language R.
 
-The following assignment will be accessible via my [GitHub Repository]().
+The following assignment will be accessible via my [GitHub Repository](https://github.com/spacerome/Data607_Assignment_6).
 
 ## Required Libraries
 
