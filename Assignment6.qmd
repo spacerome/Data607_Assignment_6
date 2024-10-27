@@ -1,0 +1,190 @@
+---
+title: "Data607: Web APIs"
+author: "Anthony Josue Roman"
+format: html
+editor: visual
+---
+
+```{r include=FALSE}
+require(readr)
+require(RCurl)
+require(stringr)
+require(dplyr)
+require(tidyr)
+require(tidyverse)
+require(ggplot2)
+require(knitr)
+require(kableExtra)
+require(xml2)
+require(rvest)
+require(jsonlite)
+require(bslib)
+require(RJSONIO)
+require(httr)
+require(rjson)
+require(syuzhet)
+```
+
+```{r include=FALSE}
+library(bslib)
+library(readr)
+library(RCurl)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(xml2)
+library(rvest)
+library(jsonlite)
+library(httr)
+library(rjson)
+library(syuzhet)
+```
+
+## Introduction
+
+This assignment is done for the purpose of expounding on how to use Web APIs to get and analyze data. More precisely, the assignment is going to deal with the use of New York Times APIs to gain access to real-time, structured data using programmatic requests. By constructing an interface in R, JSON data from the API will be parsed and transformed into an R DataFrame, which enables the analysis of such data. In this case, using the New York Times Article Search API, attention will be paid to retrieve articles on Democrats and Republicans. This will give the chance to analyze the media coverage and political discourses of these two major U.S. political parties. In this exercise, the way web APIs are used will be demonstrated in a practical way in data analysis using the programming language R.
+
+The following assignment will be accessible via my [GitHub Repository]().
+
+## Required Libraries
+
+```{r eval=FALSE}
+library(bslib)
+library(readr)
+library(RCurl)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(xml2)
+library(rvest)
+library(jsonlite)
+library(httr)
+library(rjson)
+library(syuzhet)
+```
+
+The following libraries are required to run the code:
+
+-   `httr`: This package provides a set of functions for making HTTP requests to web APIs. It is used to make requests to the New York Times Article Search API to retrieve articles on Democrats and Republicans.
+-   `jsonlite`: This package provides a set of functions for parsing JSON data. It is used to parse the JSON data returned by the New York Times Article Search API.
+-   `dplyr`: This package provides a set of functions for data manipulation and analysis. It is used to transform the data into an R DataFrame and to analyze the data.
+-   `ggplot2`: This package provides a set of functions for creating plots and visualizations. It is used to create visualizations of the data.
+-   `kableExtra`: This package provides a set of functions for creating tables. It is used to create tables of the data.
+-   `rvest`: This package provides a set of functions for web scraping. It is used to scrape data from web pages.
+-   `xml2`: This package provides a set of functions for parsing XML data. It is used to parse the XML data returned by the New York Times Article Search API.
+-   `RCurl`: This package provides a set of functions for making HTTP requests. It is used to make requests to the New York Times Article Search API.
+-   `stringr`: This package provides a set of functions for string manipulation. It is used to manipulate strings in the data.
+-   `readr`: This package provides a set of functions for reading and writing data. It is used to read and write data in various formats.
+-   `tidyverse`: This package provides a set of functions for data manipulation and analysis. It is used to transform the data into an R DataFrame and to analyze the data.
+-   `bslib`: This package provides a set of functions for creating custom themes for plots and visualizations. It is used to create custom themes for the visualizations.
+-   `syuzhet`: This package provides a set of functions for sentiment analysis. It is used to perform sentiment analysis on the data.
+
+## Data Collection
+
+The New York Times Article Search API is a RESTful API that allows users to search New York Times articles from September 18, 1851 to today. The API provides a way to search for articles, retrieve article metadata, and get links to the full article. The API is free to use, but requires an API key to access. The API key can be obtained by registering for an account on the New York Times Developer Network. The API key is used to authenticate requests to the API and to track usage. The API key is passed as a query parameter in the URL when making requests to the API.
+
+The API provides a number of parameters that can be used to filter and sort the results of a search. Some of the parameters include:
+
+-   `q`: A search query. This can be a word or phrase that appears in the article.
+-   `fq`: A filter query. This can be used to filter the results based on various criteria, such as the publication date, the section of the newspaper, or the news desk.
+-   `begin_date`: The beginning date of the search range. This can be used to filter the results based on the publication date of the article.
+-   `end_date`: The end date of the search range. This can be used to filter the results based on the publication date of the article.
+-   `sort`: The sort order of the results. This can be used to sort the results by relevance, newest, oldest, or by the publication date.
+
+In this exercise, the API will be used to search for articles on Democrats and Republicans. The search query will be set to "Democrats" or "Republicans", and the results will be filtered based on the publication date. The results will be sorted by the publication date, with the newest articles appearing first.
+
+```{r apistuff}
+
+# Define your API key
+api_key <- "cZvX0S19mHeFlxNUCFOX8vj9EbNX84l1"
+
+# Base URL for the Article Search API
+base_url <- "https://api.nytimes.com/svc/search/v2/articlesearch.json"
+
+# Define the search query for "Democrats" and "Republicans"
+query <- "Democrats AND Republicans"
+
+# Use URLencode to ensure special characters are correctly handled in the query
+query <- URLencode(query)
+
+# Construct the URL with the query and API key
+url <- paste0(base_url, "?q=", query, "&api-key=", api_key)
+
+# Send the request to the API
+response <- GET(url)
+
+# Check if the request was successful
+if (status_code(response) == 200) {
+  # Parse the JSON response
+  data_json <- content(response, as = "text")
+  data_list <- fromJSON(data_json)
+  
+  # Check the structure of the response to see the format of the articles
+  if (!is.null(data_list$response$docs) && length(data_list$response$docs) > 0) {
+    
+    # Loop through articles and handle missing fields
+    articles <- lapply(data_list$response$docs, function(article) {
+      # Safely extract each field with tryCatch to handle missing fields
+      headline <- tryCatch(article$headline$main, error = function(e) NA)
+      pub_date <- tryCatch(article$pub_date, error = function(e) NA)
+      snippet <- tryCatch(article$snippet, error = function(e) NA)
+      web_url <- tryCatch(article$web_url, error = function(e) NA)
+      
+      # Return as a list
+      return(list(headline = headline, pub_date = pub_date, snippet = snippet, web_url = web_url))
+    })
+    
+    # Convert the list to a DataFrame
+    articles_df <- do.call(rbind, lapply(articles, as.data.frame, stringsAsFactors = FALSE))
+    
+    # Display the first few rows of the DataFrame
+    head(articles_df)
+    
+  } else {
+    print("No articles found for the given query.")
+  }
+  
+} else {
+  print(paste("Failed to fetch data. Status code:", status_code(response)))
+}
+
+```
+
+## Data Analysis
+
+```{r count_articles}
+
+# Count the total number of articles
+num_articles <- nrow(articles_df)
+print(paste("Total number of articles:", num_articles))
+
+# Convert pub_date to Date format
+articles_df$pub_date <- as.Date(articles_df$pub_date)
+
+# Extract the year and month
+articles_df$year <- format(articles_df$pub_date, "%Y")
+articles_df$month <- format(articles_df$pub_date, "%Y-%m")
+
+# Count the number of articles by year
+table(articles_df$year)
+
+```
+
+The number of articles retrieved for the search query "Democrats AND Republicans" is 10. The articles are from the year 2024. 
+
+## Conclusion
+
+In this assignment, the use of Web APIs to get and analyze data was demonstrated. By using the New York Times Article Search API, articles on Democrats and Republicans were retrieved and analyzed. The data was transformed into an R DataFrame, which enabled the analysis of the data. The number of articles retrieved for the search query "Democrats AND Republicans" was 10, with articles from the years 2021 and 2022. The number of articles by year was 8 for 2021 and 2 for 2022. I believe if I used the archive API, I would have gotten more articles to analyze and compare the media coverage and political discourses of these two major U.S. political parties. I was going top use the syuzhet package to perform sentiment analysis on the data, but I was unable to get the package to work as the data kept outputting a zero output. My other assumption is that there is an API limit that may have limited it to 10 articles.
+
+## References
+
+-   New York Times Developer Network. (n.d.). Article Search API. Retrieved from [https://developer.nytimes.com/apis](https://developer.nytimes.com/apis)
+
